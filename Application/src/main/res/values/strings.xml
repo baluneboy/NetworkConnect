@@ -1,0 +1,31 @@
+<!--
+  Copyright 2013 The Android Open Source Project
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+
+<resources>
+    <string name="welcome_message">Welcome to Network Connect
+        Used to FETCH SAMS device time text info from URL.
+    </string>
+
+    <string name="fetch_text">Fetch</string>
+    <string name="clear_text">Clear</string>
+    <string name="connection_error">Connection error.</string>
+
+    <!-- FIXME why does D or DDD not give DOY? -->
+    <!-- The "color" attribute is an alias for "fgcolor" and was introduced in API level 18.  -->
+    <string name="styled_12_hour_clock"><b>\'GMT\' </b><font face="sans-serif-bold"><font size="18">yyyy-MM-dd</font> / <b>HH:mm:ss</b></font></string>
+    <string name="styled_24_hour_clock"><b>\'GMT\' </b><font face="sans-serif-bold"><font size="18">yyyy-MM-dd</font> / <b>HH:mm:ss</b></font></string>
+
+</resources>
