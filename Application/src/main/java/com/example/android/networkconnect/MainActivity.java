@@ -17,15 +17,27 @@
 package com.example.android.networkconnect;
 
 import android.app.ProgressDialog;
+import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
+import android.text.style.URLSpan;
 import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.example.android.common.devices.DeviceDeltas;
+import com.example.android.common.devices.DigestDevices;
 import com.example.android.common.logger.Log;
 import com.example.android.common.logger.LogFragment;
 import com.example.android.common.logger.LogWrapper;
@@ -39,6 +51,12 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Sample application demonstrating how to connect to the network and fetch raw
@@ -52,8 +70,7 @@ public class MainActivity extends FragmentActivity {
 
     public static final String TAG = "Network Connect";
 
-    // Reference to the fragment showing events, so we can clear it with a button
-    // as necessary.
+    // Reference to the fragment showing events, so we can clear it with a button as needed.
     private LogFragment mLogFragment;
 
     private Uri mUriChimeSound = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.scandium_mp3);
@@ -68,7 +85,7 @@ public class MainActivity extends FragmentActivity {
         SimpleTextFragment introFragment = (SimpleTextFragment)
                     getSupportFragmentManager().findFragmentById(R.id.intro_fragment);
         introFragment.setText(R.string.welcome_message);
-        introFragment.getTextView().setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16.0f);
+        introFragment.getTextView().setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16.0f); // was 16.0f
 
         // Initialize the logging framework.
         initializeLogging();
@@ -90,16 +107,17 @@ public class MainActivity extends FragmentActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            // When the user clicks FETCH, fetch the first 500 characters of
-            // raw HTML from www.google.com.
+
+            // When the user clicks FETCH, fetch the web text from URL
             case R.id.fetch_action:
                 refresh();
                 return true;
+
             // Clear the log view fragment.
             case R.id.clear_action:
               mLogFragment.getLogView().setText("");
               loopSound(1, this.mUriAlarmSound);
-              return true;
+
         }
         return false;
     }
@@ -167,7 +185,39 @@ public class MainActivity extends FragmentActivity {
          */
         @Override
         protected void onPostExecute(String result) {
-            Log.i(TAG, result);
+            // TODO change so result can be SpannableString for formatting
+
+            // At this point, result is big string: several DeviceDeltas lines with newline chars
+            TreeMap<String,DeviceDeltas> sorted_map = DeviceDeltas.getSortedMap(result);
+
+            // FIXME with better way to handle these prefs
+            List<String> ignore_devices = new ArrayList<String>();
+/*            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+            boolean es03rtCheckBox = prefs.getBoolean("es03rtCheckBox", false);
+            boolean es05rtCheckBox = prefs.getBoolean("es05rtCheckBox", false);
+            boolean es06rtCheckBox = prefs.getBoolean("es06rtCheckBox", false);
+            if (!es03rtCheckBox) { ignore_devices.add("es03rt"); }
+            if (!es05rtCheckBox) { ignore_devices.add("es05rt"); }
+            if (!es06rtCheckBox) { ignore_devices.add("es06rt"); }   */
+            //ignore_devices.add("es03rt");
+            ignore_devices.add("es05rt");
+            ignore_devices.add("es06rt");
+
+            // now we have sorted map, so iterate over devices to digest info
+            DigestDevices digestDevices = new DigestDevices(sorted_map, ignore_devices);
+            digestDevices.processMap();
+
+            // Prepend debug info before big result str
+            String debugstr = "";
+            debugstr += "bad ho count = " + digestDevices.getCountBadDeltaHosts();
+            debugstr += "\nbad ku count = " + digestDevices.getCountBadDeltaKus();
+/*            debugstr += "\nho range = " + digestDevices.getDeltaHostRange().toString();
+            debugstr += "\nku range = " + digestDevices.getDeltaKuRange().toString();*/
+
+            Log.i(TAG, debugstr + "\n\n"  + result);
+
+            //Log.i(TAG, debugstr + "\n\n" + digestDevices.getDeviceLines());
+
             // close progresses dialog
             dialog.dismiss();
         }
@@ -227,7 +277,7 @@ public class MainActivity extends FragmentActivity {
         return new String(buffer);
     }
 
-    private String readIt(InputStream stream) throws IOException, UnsupportedEncodingException {
+    private String OLDreadIt(InputStream stream) throws IOException, UnsupportedEncodingException {
         BufferedReader br = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
         StringBuilder total = new StringBuilder();
         String line;
@@ -237,6 +287,35 @@ public class MainActivity extends FragmentActivity {
         }
         String result = total.toString();
         return result;
+    }
+
+    private String readIt(InputStream stream) throws IOException, UnsupportedEncodingException {
+        String line;
+        BufferedReader br = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+        List<String> deviceLines = new ArrayList<>();
+        while ((line = br.readLine()) != null) {
+            if(line.startsWith("begin") || line.startsWith("end") || line.startsWith("yyyy")  || line.charAt(4)=='-') continue;
+            if (line.endsWith("HOST")) { line += "\n------------------------------"; }
+            deviceLines.add(line);
+        }
+
+        // create comparator for reverse order
+        Comparator cmp = Collections.reverseOrder();
+        Collections.sort(deviceLines, cmp);
+
+        return join(deviceLines, "\n");
+    }
+
+    public static String join(List<?> list, String delim) {
+        int len = list.size();
+        if (len == 0)
+            return "";
+        StringBuilder sb = new StringBuilder(list.get(0).toString());
+        for (int i = 1; i < len; i++) {
+            sb.append(delim);
+            sb.append(list.get(i).toString());
+        }
+        return sb.toString();
     }
 
     /** Create a chain of targets that will receive log data */

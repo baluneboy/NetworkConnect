@@ -42,6 +42,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ScrollView;
 
+import com.example.android.networkconnect.R;
+
 /**
  * Simple fragment which contains a LogView and uses is to output log data it receives
  * through the LogNode interface.
@@ -71,7 +73,7 @@ public class LogFragment extends Fragment {
         mLogView.setTypeface(font);
 
         // Want to set padding as 16 dips, setPadding takes pixels.  Hooray math!
-        int paddingDips = 16;
+        int paddingDips = 4; // originally, this was 16
         double scale = getResources().getDisplayMetrics().density;
         int paddingPixels = (int) ((paddingDips * (scale)) + .5);
         mLogView.setPadding(paddingPixels, paddingPixels, paddingPixels, paddingPixels);
