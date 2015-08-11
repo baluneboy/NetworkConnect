@@ -63,8 +63,8 @@ public class MainActivity extends FragmentActivity {
     private TextView mTextViewDevices;
     private TextView mTextViewResult;
 
-    private Uri mChimeSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.scandium_mp3);
-    private Uri mAlarmSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.quindar_push_rel_zing_mp3);
+    private Uri mChimeSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.mild_europa_mp3);
+    private Uri mAlarmSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.very_alarmed_mp3);
     private Uri mSoundUri = mChimeSoundUri;
 
     @Override
@@ -222,6 +222,8 @@ public class MainActivity extends FragmentActivity {
         ignore_devices.add("es03rt");
         ignore_devices.add("es05rt");
         ignore_devices.add("es06rt");
+        ignore_devices.add("hirap");
+        ignore_devices.add("oss");
 
         // FIXME use different input profile in DigestDevices to get ranges from prefs...
         // ...AFTER adding XML for ranges FIRST.
@@ -237,7 +239,6 @@ public class MainActivity extends FragmentActivity {
         Log.i("DIGEST", "ku range = " + digestDevices.getDeltaKuRange().toString());
 
         // FIXME with both color result (for one-liner) and sound too
-        // get result state
         int mResultValue = digestDevices.getResultState();
         if (mResultValue < 0) {
             mSoundUri = this.mAlarmSoundUri;

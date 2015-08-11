@@ -266,8 +266,8 @@ public class DeviceDeltas {
             	// FIXME next if lines should be regular expression match
             	//       or maybe try/catch around 2 lines below the if lines?
             	if ( line.startsWith("begin") || line.startsWith("end") ) continue;
-            	if ( line.startsWith("2015-") || line.startsWith("---") ) continue;            	
-            	if ( line.startsWith("yyyy")  || line.startsWith("xxx") ) continue;            	
+            	if ( line.startsWith("2015-") || line.startsWith("---") ) continue;
+            	if ( line.startsWith("yyyy")  || line.startsWith("xxx") ) continue;
                 DeviceDeltas dd = new DeviceDeltas(line);
                 map.put(dd.device, dd);
             }
@@ -276,11 +276,11 @@ public class DeviceDeltas {
             //You'll need to add proper error handling here
 			System.out.println("IOException");
         }
-        
+
         return map;
 
-    }	
-    
+    }
+
     public static void showMatch(Boolean bFound, Matcher m) {
         if (bFound) {
             System.out.println("matcher count: " + m.groupCount());
@@ -290,7 +290,7 @@ public class DeviceDeltas {
         } else {
             System.out.println("NO MATCH");
         }
-        
+
     }
 
     public static SpannableString getSpannableFromMap(TreeMap<String, DeviceDeltas> sorted_map, List<String> ignore_devices, TextView tvResult) {

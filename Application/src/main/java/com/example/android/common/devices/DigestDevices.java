@@ -57,6 +57,10 @@ public class DigestDevices {
 
     public void setDeltaKuRange(Integer rmin, Integer rmax) { mDeltaKuRange = Range.create(rmin, rmax); }
 
+    private void setCountBadDeltaKus(int value) { mCountBadDeltaKus = value; }
+
+    private void setCountBadDeltaHosts(int value) { mCountBadDeltaHosts = value; }
+
     private void setResultState(int value) { mResultState = value; }
 
     // getters
@@ -104,167 +108,185 @@ public class DigestDevices {
     // NEED NEW DELTA = (TextClockGMT - host) SHOULD BE LESS THAN [ 10 SEC? ]
     // if bad dPhone, then bad; maybe bigtime on butters host is down or butters crashed
     // any bad dKu is bad
-    // all dHost bad is unknown (because ku in that set), SO YELLOW COLOR & CHIME SOUND (no alarm)
-    // otherwise (all other criteria above failed) okay so GREEN COLOR & CHIME SOUND
+    // all dHost bad is unknown (because ku is in that set), SO YELLOW COLOR & CHIME SOUND (no alarm)
+    // otherwise (all other criteria above failed) go with okay so GREEN COLOR & CHIME SOUND
     public void processMap() {
 
-        int start;
-        int countBadDeltaHosts = 0;
-        int countBadDeltaKus = 0;
-
-        // now we have sorted map, so iterate to build sorted, formatted spannables
-        SpannableStringBuilder deviceLines = new SpannableStringBuilder();
+        // get formatted spannable string for device lines & result one-line PLUS set result state
         try {
 
-            // header line
-            deviceLines.append("DOY:hh:mm:ss  dHost    dKu  device\n");
-            deviceLines.append("----------------------------------\n");
-            deviceLines.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            // iterate over device lines to get deltas with formatting and bad host/ku delta counts
+            mDeviceLines = getFormattedDeviceLines();
 
-            for (TreeMap.Entry<String, DeviceDeltas> entry: mSortedMap.entrySet()) {
-                DeviceDeltas dev = entry.getValue();
-                String device_name = dev.getDevice();
-                Date device_time = dev.getTime();
-                float device_dh = dev.getDeltaHost();
-                float device_dk = dev.getDeltaKu();
+            // examine bad host/ku delta counts and such to determine result state & formatted one-liner
+            mResultOneLiner = getFormattedResultOneLiner();
 
-                // FIXME when we are get to host entry, entire lines background gets distinct color
-                // FIXME user config for dimmed devices
+            // TODO main activity change sound to chime/alarm based on mResultState
 
-                // TODO make a home for snippet keeper for repeat character like this
-                // the next line shows how to repeat char "-" 80 times
-                //    Log.i("SEP", new String(new char[80]).replace("\0", "-"));
-
-                // if host, then make this a distinctive line via bg color
-                if (device_name.equals("host")) {
-
-                    start = deviceLines.length();
-
-                    deviceLines.append(DOY.format(device_time));
-                    deviceLines.append(HHMMSS.format(device_time));
-                    deviceLines.append(String.format(" %6.1f", device_dh));
-                    deviceLines.append(String.format(" %6.1f", device_dk));
-                    deviceLines.append("  " + device_name + "      ");
-                    deviceLines.setSpan(new ForegroundColorSpan(Color.BLACK), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    deviceLines.setSpan(new BackgroundColorSpan(Color.WHITE), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-                }
-                // if this is device to ignore, dim this row
-                else if (mIgnoreDevices.contains(device_name)) {
-
-                    start = deviceLines.length();
-
-                    deviceLines.append(DOY.format(device_time));
-                    deviceLines.append(HHMMSS.format(device_time));
-                    deviceLines.append("       ");
-                    deviceLines.append("       ");
-                    deviceLines.append("  " + device_name + "      ");
-                    deviceLines.setSpan(new ForegroundColorSpan(Color.DKGRAY), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    //deviceLines.setSpan(new BackgroundColorSpan(Color.BLACK), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-                }
-                // otherwise, we have a device to consider for sound notify (check its dh and dk)
-                else {
-
-                    // device time DOY: is plain
-                    deviceLines.append(DOY.format(device_time));
-
-                    // device time HH:MM:SS is white
-                    start = deviceLines.length();
-                    deviceLines.append(HHMMSS.format(device_time));
-                    //deviceLines.setSpan(new ForegroundColorSpan(0xFFCC5500), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-                    // TODO for out of range dh (or dk), make red that value and device name too
-                    // deltaHost span
-                    //start = deviceLines.length();
-                    float dh = device_dh;
-                    if (dh < -999.9) {
-                        dh = -999.9f;
-                    } else if (dh > 999.9f) {
-                        dh = 999.9f;
-                    }
-                    deviceLines.append(String.format(" %6.1f", dh));
-                    //deviceLines.setSpan(new ForegroundColorSpan(0xFFCC5500), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    //deviceLines.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-                    // deltaKu span
-                    //start = deviceLines.length();
-                    float dk = device_dk;
-                    boolean clipped = false;
-                    if (dk < -999.9) {
-                        dk = -999.9f; clipped = true;
-                    } else if (dk > 999.9f) {
-                        dk = 999.9f;  clipped = true;
-                    }
-                    deviceLines.append(String.format(" %6.1f", dk));
-                    if (clipped) {
-                        //deviceLines.setSpan(new ForegroundColorSpan(0x80ff0000), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        deviceLines.setSpan(new ForegroundColorSpan(Color.RED), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        //deviceLines.setSpan(new ForegroundColorSpan(0xFFCC5500), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        //deviceLines.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    }
-
-                    // device name is clickable linked to WHAT?
-                    deviceLines.append("  ");
-                    //start = deviceLines.length();
-                    deviceLines.append(padRight(device_name, 12));
-                    //deviceLines.setSpan(new URLSpan("http://pims.grc.nasa.gov/plots/sams/121f03/121f03.jpg"), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-                    // check dh
-                    if (dh < 13.0f || dh > 17.0f) { countBadDeltaHosts++; }
-
-                    // check dk
-                    if (Math.abs(dk) > 3.0f) { countBadDeltaKus++; }
-
-                }
-
-                deviceLines.append("\n");
-
-            }
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
-        mDeviceLines = SpannableString.valueOf(deviceLines);
-
-        // construct result line spannable string
-        SpannableStringBuilder resultLine = new SpannableStringBuilder();
-        int startResLine = resultLine.length();
-        if (countBadDeltaHosts + countBadDeltaKus == 0) {
-            resultLine.append("All dHost okay, and all dKu okay.");
-            resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        else {
-            // TODO alarm somewhere in/after this else clause
-            startResLine = resultLine.length();
-            if (countBadDeltaHosts > 0) {
-                resultLine.append(String.format("%d bad dHost, ", countBadDeltaHosts));
-                resultLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            else {
-                resultLine.append("all dHost okay, ");
-                resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            startResLine = resultLine.length();
-            if (countBadDeltaKus > 0) {
-                resultLine.append(String.format("%d bad dKu.", countBadDeltaKus));
-                resultLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            else {
-                resultLine.append("all dKu okay.");
-                resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-        }
-
-        mResultOneLiner = SpannableString.valueOf(resultLine);
-
-        // TODO do actual -1, 0, +1 checking here
-        if (mCountBadDeltaKus > 0) {
-            setResultState(-1);
-        }
-
     }
 
+    private SpannableString getFormattedDeviceLines() {
+
+        // at this point, we should have sorted map, so iterate to build formatted spannable strings
+        SpannableStringBuilder devLines = new SpannableStringBuilder();
+
+        // counter for setting spans in growing-formatted spannable string
+        int start;
+
+        // FIXME seems like sometimes you use setter/getters and elsewhere just use member variable?
+        // to start out, we assume all deltas are okay
+        setCountBadDeltaHosts(0);
+        setCountBadDeltaKus(0);
+
+        // header line
+        devLines.append("DOY:hh:mm:ss  dHost    dKu  device\n");
+        devLines.append("----------------------------------\n");
+        devLines.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        for (TreeMap.Entry<String, DeviceDeltas> entry: mSortedMap.entrySet()) {
+            DeviceDeltas dev = entry.getValue();
+            String device_name = dev.getDevice();
+            Date device_time = dev.getTime();
+            float device_dh = dev.getDeltaHost();
+            float device_dk = dev.getDeltaKu();
+
+            // FIXME when we get to host entry, entire line background gets distinct color
+            // FIXME user config for dimmed devices
+
+            // TODO make a home for snippet keeper for repeat character like this
+            // the next line shows how to repeat char "-" 80 times
+            //    Log.i("SEP", new String(new char[80]).replace("\0", "-"));
+
+            // if host, then make this a distinctive line via bg color
+            if (device_name.equals("host")) {
+
+                start = devLines.length();
+
+                devLines.append(DOY.format(device_time));
+                devLines.append(HHMMSS.format(device_time));
+                devLines.append(String.format(" %6.1f", device_dh));
+                devLines.append(String.format(" %6.1f", device_dk));
+                devLines.append("  " + device_name + "      ");
+                devLines.setSpan(new ForegroundColorSpan(Color.BLACK), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                devLines.setSpan(new BackgroundColorSpan(Color.WHITE), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            }
+            // if this is device to ignore, dim this row
+            else if (mIgnoreDevices.contains(device_name)) {
+
+                start = devLines.length();
+
+                devLines.append(DOY.format(device_time));
+                devLines.append(HHMMSS.format(device_time));
+                devLines.append("       ");
+                devLines.append("       ");
+                devLines.append("  " + device_name + "      ");
+                devLines.setSpan(new ForegroundColorSpan(Color.DKGRAY), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                //devLines.setSpan(new BackgroundColorSpan(Color.BLACK), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+            }
+            // otherwise, we have a device to consider for sound notify (check its dh and dk)
+            else {
+
+                // device time DOY: is plain
+                devLines.append(DOY.format(device_time));
+
+                // device time HH:MM:SS is white
+                start = devLines.length();
+                devLines.append(HHMMSS.format(device_time));
+                //devLines.setSpan(new ForegroundColorSpan(0xFFCC5500), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                // TODO for out of range dh (or dk), make red that value and device name too
+                // deltaHost span
+                //start = devLines.length();
+                float dh = device_dh;
+                if (dh < -999.9) {
+                    dh = -999.9f;
+                } else if (dh > 999.9f) {
+                    dh = 999.9f;
+                }
+                devLines.append(String.format(" %6.1f", dh));
+                //devLines.setSpan(new ForegroundColorSpan(0xFFCC5500), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                //devLines.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                // deltaKu span
+                //start = devLines.length();
+                float dk = device_dk;
+                boolean clipped = false;
+                if (dk < -999.9) {
+                    dk = -999.9f; clipped = true;
+                } else if (dk > 999.9f) {
+                    dk = 999.9f;  clipped = true;
+                }
+                devLines.append(String.format(" %6.1f", dk));
+                if (clipped) {
+                    //devLines.setSpan(new ForegroundColorSpan(0x80ff0000), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    devLines.setSpan(new ForegroundColorSpan(Color.RED), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    //devLines.setSpan(new ForegroundColorSpan(0xFFCC5500), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    //devLines.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+
+                // device name is clickable linked to WHAT?
+                devLines.append("  ");
+                //start = devLines.length();
+                devLines.append(padRight(device_name, 12));
+                //devLines.setSpan(new URLSpan("http://pims.grc.nasa.gov/plots/sams/121f03/121f03.jpg"), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                // check dh
+                if (dh < 13.0f || dh > 17.0f) { mCountBadDeltaHosts++; }
+
+                // check dk
+                if (Math.abs(dk) > 3.0f) { mCountBadDeltaKus++; }
+
+            }
+
+            devLines.append("\n");
+
+        }
+        return SpannableString.valueOf(devLines);
+    }
+
+    private SpannableString getFormattedResultOneLiner() {
+
+        // init state to zero (i.e. unknown state)
+        setResultState(0);
+
+        // construct result one-liner spannable string
+        SpannableStringBuilder resLine = new SpannableStringBuilder();
+        int startResLine = resLine.length();
+        int countBadDeltaHosts = getCountBadDeltaHosts();
+        int countBadDeltaKus = getCountBadDeltaKus();
+        if (countBadDeltaHosts + countBadDeltaKus == 0) {
+            resLine.append("All dHost okay, and all dKu okay.");
+            resLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            setResultState(1);
+        }
+        else {
+            startResLine = resLine.length();
+            if (countBadDeltaHosts > 0) {
+                resLine.append(String.format("%d bad dHost, ", countBadDeltaHosts));
+                resLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            else {
+                resLine.append("all dHost okay, ");
+                resLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            startResLine = resLine.length();
+            if (countBadDeltaKus > 0) {
+                resLine.append(String.format("%d bad dKu.", countBadDeltaKus));
+                resLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                setResultState(-1);
+            }
+            else {
+                resLine.append("all dKu okay.");
+                resLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+        return SpannableString.valueOf(resLine);
+    }
 
 }
