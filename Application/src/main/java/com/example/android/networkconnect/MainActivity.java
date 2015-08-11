@@ -25,6 +25,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.text.method.LinkMovementMethod;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
@@ -58,8 +59,8 @@ public class MainActivity extends FragmentActivity {
     private TextView mTextViewDevices;
     private TextView mTextViewResult;
 
-    private Uri mUriChimeSound = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.scandium_mp3);
-    private Uri mUriAlarmSound = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.quindar_push_rel_zing_mp3);
+    private Uri mChimeSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.scandium_mp3);
+    private Uri mAlarmSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.quindar_push_rel_zing_mp3);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,7 +74,7 @@ public class MainActivity extends FragmentActivity {
         mTextViewDevices.setMovementMethod(LinkMovementMethod.getInstance());
 
         // pump our styled text into the TextView
-        mTextViewDevices.setText("nothing yet", TextView.BufferType.SPANNABLE);
+        mTextViewDevices.setText("initial onCreate text", TextView.BufferType.SPANNABLE);
 
         // initialize TextView for result one-liner
         mTextViewResult.setText(R.string.welcome_message);
@@ -105,7 +106,7 @@ public class MainActivity extends FragmentActivity {
             case R.id.clear_action:
                 mTextViewResult.setText("This result line changes with Refresh AsyncTask.");
                 mTextViewResult.setTextColor(Color.YELLOW);
-                loopSound(1, this.mUriAlarmSound);
+                loopSound(1, this.mAlarmSoundUri);
 
         }
         return false;
@@ -113,13 +114,14 @@ public class MainActivity extends FragmentActivity {
 
     private void refresh(){
         // clear
-        mTextViewDevices.setText("please wait...");
+        mTextViewDevices.setText("Please wait...");
+        mTextViewResult.setText("Started refresh via DownloadTask.");
 
         // fetch
         new DownloadTask().execute("http://pims.grc.nasa.gov/plots/user/sams/status/sensortimes.txt");
 
         // play notify sound ONCE
-        loopSound(1, this.mUriChimeSound);
+        loopSound(1, this.mChimeSoundUri);
     }
 
     public void loopSound(int repeat, Uri uri) {
@@ -174,7 +176,8 @@ public class MainActivity extends FragmentActivity {
          */
         @Override
         protected void onPostExecute(String result) {
-            // TODO change so result can be SpannableString for formatting
+            // FIXME find out if we need this and why (not)
+            //super.onPostExecute(result);
 
             // At this point, result is big string: several DeviceDeltas lines with newline chars
             TreeMap<String,DeviceDeltas> sorted_map = DeviceDeltas.getSortedMap(result);
@@ -224,9 +227,10 @@ public class MainActivity extends FragmentActivity {
 
         try {
             stream = downloadUrl(urlString);
-            //str = readIt(stream, 500);
             str = readIt(stream);
-       } finally {
+        } catch (Exception e) {
+            Log.e("loadFromNetwork", "Error while downloading: " + e.toString());
+        } finally {
            if (stream != null) {
                stream.close();
             }
