@@ -26,6 +26,7 @@ public class DigestDevices {
     //private SpannableStringBuilder mDeviceLines = new SpannableStringBuilder();
     private int mCountBadDeltaHosts;
     private int mCountBadDeltaKus;
+    private int mResultState;
 
     private static final SimpleDateFormat DOY = new SimpleDateFormat("DDD:");
     private static final SimpleDateFormat HHMMSS = new SimpleDateFormat("HH:mm:ss");
@@ -38,6 +39,7 @@ public class DigestDevices {
         mDeltaKuRange = delta_ku_range;
         mCountBadDeltaKus = 0;
         mCountBadDeltaHosts = 0;
+        mResultState = 0;
     }
 
     public DigestDevices(TreeMap<String, DeviceDeltas> sorted_map, List<String> ignore_devices) {
@@ -47,12 +49,15 @@ public class DigestDevices {
         mDeltaKuRange = Range.create(-3, 3);
         mCountBadDeltaKus = 0;
         mCountBadDeltaHosts = 0;
+        mResultState = 0;
     }
 
     // setters
     public void setDeltaHostRange(Integer rmin, Integer rmax) { mDeltaHostRange = Range.create(rmin, rmax); }
 
     public void setDeltaKuRange(Integer rmin, Integer rmax) { mDeltaKuRange = Range.create(rmin, rmax); }
+
+    private void setResultState(int value) { mResultState = value; }
 
     // getters
     public TreeMap<String, DeviceDeltas> getSortedMap() {
@@ -87,10 +92,20 @@ public class DigestDevices {
         return mCountBadDeltaKus;
     }
 
+    public int getResultState() {
+        return mResultState;
+    }
+
     private static String padRight(String s, int n) {
         return String.format("%1$-" + n + "s", s);
     }
 
+    // TODO set one of 3 result states: (1) GREEN okay, (2) YELLOW unknown, (3) RED bad
+    // NEED NEW DELTA = (TextClockGMT - host) SHOULD BE LESS THAN [ 10 SEC? ]
+    // if bad dPhone, then bad; maybe bigtime on butters host is down or butters crashed
+    // any bad dKu is bad
+    // all dHost bad is unknown (because ku in that set), SO YELLOW COLOR & CHIME SOUND (no alarm)
+    // otherwise (all other criteria above failed) okay so GREEN COLOR & CHIME SOUND
     public void processMap() {
 
         int start;
@@ -218,10 +233,10 @@ public class DigestDevices {
         int startResLine = resultLine.length();
         if (countBadDeltaHosts + countBadDeltaKus == 0) {
             resultLine.append("All dHost okay, and all dKu okay.");
-            resultLine.setSpan(new ForegroundColorSpan(0xFFCC5500), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         else {
-            // TODO alarm somewhere in/after this else clause [keep track of 3 strikes before alarming?]
+            // TODO alarm somewhere in/after this else clause
             startResLine = resultLine.length();
             if (countBadDeltaHosts > 0) {
                 resultLine.append(String.format("%d bad dHost, ", countBadDeltaHosts));
@@ -229,7 +244,7 @@ public class DigestDevices {
             }
             else {
                 resultLine.append("all dHost okay, ");
-                resultLine.setSpan(new ForegroundColorSpan(0xFFCC5500), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             startResLine = resultLine.length();
             if (countBadDeltaKus > 0) {
@@ -238,11 +253,16 @@ public class DigestDevices {
             }
             else {
                 resultLine.append("all dKu okay.");
-                resultLine.setSpan(new ForegroundColorSpan(0xFFCC5500), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
 
         mResultOneLiner = SpannableString.valueOf(resultLine);
+
+        // TODO do actual -1, 0, +1 checking here
+        if (mCountBadDeltaKus > 0) {
+            setResultState(-1);
+        }
 
     }
 

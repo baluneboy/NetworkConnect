@@ -16,13 +16,16 @@
 
 package com.example.android.networkconnect;
 
+import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
@@ -46,6 +49,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TreeMap;
 
+// FIXME for MainActivity can we go with extends Activity instead of FragmentActivity?
 /**
  * Sample application demonstrating how to connect to the network and fetch raw
  * text from URL using AsyncTask to do the fetch on a background thread.
@@ -61,6 +65,7 @@ public class MainActivity extends FragmentActivity {
 
     private Uri mChimeSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.scandium_mp3);
     private Uri mAlarmSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.quindar_push_rel_zing_mp3);
+    private Uri mSoundUri = mChimeSoundUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +80,8 @@ public class MainActivity extends FragmentActivity {
 
         // pump our styled text into the TextView
         mTextViewDevices.setText("initial onCreate text", TextView.BufferType.SPANNABLE);
+        Typeface font = Typeface.createFromAsset(getAssets(), "fonts/UbuntuMono-R.ttf");
+        mTextViewDevices.setTypeface(font);
 
         // initialize TextView for result one-liner
         mTextViewResult.setText(R.string.welcome_message);
@@ -106,7 +113,8 @@ public class MainActivity extends FragmentActivity {
             case R.id.clear_action:
                 mTextViewResult.setText("This result line changes with Refresh AsyncTask.");
                 mTextViewResult.setTextColor(Color.YELLOW);
-                loopSound(1, this.mAlarmSoundUri);
+                mSoundUri = this.mAlarmSoundUri;
+                loopSound(1);
 
         }
         return false;
@@ -114,14 +122,10 @@ public class MainActivity extends FragmentActivity {
 
     private void refresh(){
         // clear
-        mTextViewDevices.setText("Please wait...");
-        mTextViewResult.setText("Started refresh via DownloadTask.");
+        mTextViewResult.setText("Started refresh via DownloadTask, please wait...");
 
         // fetch
         new DownloadTask().execute("http://pims.grc.nasa.gov/plots/user/sams/status/sensortimes.txt");
-
-        // play notify sound ONCE
-        loopSound(1, this.mChimeSoundUri);
     }
 
     public void loopSound(int repeat, Uri uri) {
@@ -142,6 +146,10 @@ public class MainActivity extends FragmentActivity {
                 mp.start();
             }
         }).start(); // start thread to play sound
+    }
+
+    public void loopSound(int repeat) {
+        loopSound(repeat, this.mSoundUri);
     }
 
     /**
@@ -177,13 +185,33 @@ public class MainActivity extends FragmentActivity {
         @Override
         protected void onPostExecute(String result) {
             // FIXME find out if we need this and why (not)
-            //super.onPostExecute(result);
+            super.onPostExecute(result);
 
-            // At this point, result is big string: several DeviceDeltas lines with newline chars
-            TreeMap<String,DeviceDeltas> sorted_map = DeviceDeltas.getSortedMap(result);
+            // show result in textView
+            if (result == null) {
+                mTextViewDevices.setText("Error in downloading. Please try again.");
+            } else {
+                updateResults(result);
+            }
 
-            // FIXME with better way to handle this subset of few prefs
-            List<String> ignore_devices = new ArrayList<String>();
+/*            Typeface font = Typeface.createFromAsset(getAssets(), "fonts/UbuntuMono-R.ttf");
+            mTextViewDevices.setTypeface(font);*/
+
+            // close progress dialog
+            dialog.dismiss();
+
+            // play notify sound [once?]
+            loopSound(1);
+
+        }
+    }
+
+    private void updateResults(String result) {
+        // at this point, result is big string: several DeviceDeltas lines with newline characters
+        TreeMap<String,DeviceDeltas> sorted_map = DeviceDeltas.getSortedMap(result);
+
+        // FIXME with better way to handle this subset of few prefs
+        List<String> ignore_devices = new ArrayList<String>();
 /*            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
             boolean es03rtCheckBox = prefs.getBoolean("es03rtCheckBox", false);
             boolean es05rtCheckBox = prefs.getBoolean("es05rtCheckBox", false);
@@ -191,33 +219,43 @@ public class MainActivity extends FragmentActivity {
             if (!es03rtCheckBox) { ignore_devices.add("es03rt"); }
             if (!es05rtCheckBox) { ignore_devices.add("es05rt"); }
             if (!es06rtCheckBox) { ignore_devices.add("es06rt"); }   */
-            ignore_devices.add("es03rt");
-            ignore_devices.add("es05rt");
-            ignore_devices.add("es06rt");
+        ignore_devices.add("es03rt");
+        ignore_devices.add("es05rt");
+        ignore_devices.add("es06rt");
 
-            // now we have sorted map, so iterate over devices to digest info
-            DigestDevices digestDevices = new DigestDevices(sorted_map, ignore_devices);
-            digestDevices.processMap();
+        // FIXME use different input profile in DigestDevices to get ranges from prefs...
+        // ...AFTER adding XML for ranges FIRST.
 
-            // Prepend debug info before big result str
-            String debugstr = "";
-            debugstr += "bad ho count = " + digestDevices.getCountBadDeltaHosts();
-            debugstr += "\nbad ku count = " + digestDevices.getCountBadDeltaKus();
-/*            debugstr += "\nho range = " + digestDevices.getDeltaHostRange().toString();
-            debugstr += "\nku range = " + digestDevices.getDeltaKuRange().toString();*/
+        // now we have sorted map, so iterate over devices to digest info
+        DigestDevices digestDevices = new DigestDevices(sorted_map, ignore_devices);
+        digestDevices.processMap();
 
-            //Log.i(TAG, debugstr + "\n\n"  + result);
+        // FIXME suppress this [ what about final build suppress all Log? ]
+        Log.i("DIGEST", "bad ho count = " + digestDevices.getCountBadDeltaHosts());
+        Log.i("DIGEST", "bad ku count = " + digestDevices.getCountBadDeltaKus());
+        Log.i("DIGEST", "ho range = " + digestDevices.getDeltaHostRange().toString());
+        Log.i("DIGEST", "ku range = " + digestDevices.getDeltaKuRange().toString());
 
-            //Log.i(TAG, debugstr + "\n\n" + digestDevices.getDeviceLines());
-
-            mTextViewDevices.setText(digestDevices.getDeviceLines());
-
-            Typeface font = Typeface.createFromAsset(getAssets(), "fonts/UbuntuMono-R.ttf");
-            mTextViewDevices.setTypeface(font);
-
-            // close progresses dialog
-            dialog.dismiss();
+        // FIXME with both color result (for one-liner) and sound too
+        // get result state
+        int mResultValue = digestDevices.getResultState();
+        if (mResultValue < 0) {
+            mSoundUri = this.mAlarmSoundUri;
         }
+        else {
+            mSoundUri = this.mChimeSoundUri;
+        }
+        //getSupportActionBar().setTitle(GreenSpannableStringHere);  // spannable color change???
+
+        // make our ClickableSpans and URLSpans work
+        mTextViewDevices.setMovementMethod(LinkMovementMethod.getInstance());
+
+        // populate top result (one-liner) text view with alarm results in spannable text form
+        mTextViewResult.setText(digestDevices.getResultOneLiner(), TextView.BufferType.SPANNABLE);
+
+        // populate devices text view with device times info in spannable form
+        mTextViewDevices.setText(digestDevices.getDeviceLines(), TextView.BufferType.SPANNABLE);
+
     }
 
     /** Initiates the fetch operation. */
