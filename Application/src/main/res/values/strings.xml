@@ -15,16 +15,14 @@
   -->
 
 <resources>
-    <string name="welcome_message">Welcome to Network Connect
-        Used to FETCH SAMS device time text info from URL.
-    </string>
 
-    <string name="fetch_text">Fetch</string>
+    <string name="welcome_message">Welcome to NetworkConnect</string>
+    <string name="fetch_text">Refresh</string>
     <string name="clear_text">Clear</string>
     <string name="connection_error">Connection error.</string>
+    <string name="result_str">The result one-liner.</string>
 
     <!-- FIXME why does D or DDD not give DOY? -->
-    <!-- The "color" attribute is an alias for "fgcolor" and was introduced in API level 18.  -->
     <string name="styled_12_hour_clock"><b>\'GMT\' </b><font face="sans-serif-bold"><font size="18">yyyy-MM-dd</font> / <b>HH:mm:ss</b></font></string>
     <string name="styled_24_hour_clock"><b>\'GMT\' </b><font face="sans-serif-bold"><font size="18">yyyy-MM-dd</font> / <b>HH:mm:ss</b></font></string>
 
