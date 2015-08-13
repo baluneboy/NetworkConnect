@@ -46,7 +46,7 @@
         android:format24Hour="@string/styled_24_hour_clock"
         android:timeZone="GMT+0000"
         android:textColor="#ffdc6e00"
-        android:textSize="20sp"
+        android:textSize="28sp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 

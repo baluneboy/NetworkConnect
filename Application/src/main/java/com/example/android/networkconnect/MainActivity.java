@@ -31,6 +31,7 @@ import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextClock;
 import android.widget.TextView;
 
 import com.example.android.common.devices.DeviceDeltas;
@@ -60,6 +61,7 @@ public class MainActivity extends FragmentActivity {
 
     //public static final String TAG = "Network Connect";
 
+    private TextClock mTextClock;
     private TextView mTextViewDevices;
     private TextView mTextViewResult;
 
@@ -72,8 +74,14 @@ public class MainActivity extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mTextClock = (TextClock) findViewById(R.id.textClock);
         mTextViewDevices = (TextView) findViewById(R.id.devicesRichTextView);
         mTextViewResult = (TextView) findViewById(R.id.resultRichTextView);
+
+        // FIXME cannot seem to get TextClock to honor day of year (D) code???
+/*        // set TextClock format
+        mTextClock.setFormat24Hour("HH:mm:ss DDD");
+        mTextClock.setFormat12Hour("HH:mm:ss DDD");*/
 
         // make our ClickableSpans and URLSpans work
         mTextViewDevices.setMovementMethod(LinkMovementMethod.getInstance());
@@ -206,39 +214,45 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
-    private void updateResults(String result) {
-        // at this point, result is big string: several DeviceDeltas lines with newline characters
-        TreeMap<String,DeviceDeltas> sorted_map = DeviceDeltas.getSortedMap(result);
-
-        // FIXME with better way to handle this subset of few prefs
-        List<String> ignore_devices = new ArrayList<String>();
+    private List<String> getDevicesToIgnore() {
+        // FIXME with better way to handle this subset of few prefs for devices to ignore
+        List<String> ignore_devs = new ArrayList<String>();
 /*            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
             boolean es03rtCheckBox = prefs.getBoolean("es03rtCheckBox", false);
             boolean es05rtCheckBox = prefs.getBoolean("es05rtCheckBox", false);
             boolean es06rtCheckBox = prefs.getBoolean("es06rtCheckBox", false);
-            if (!es03rtCheckBox) { ignore_devices.add("es03rt"); }
-            if (!es05rtCheckBox) { ignore_devices.add("es05rt"); }
-            if (!es06rtCheckBox) { ignore_devices.add("es06rt"); }   */
-        ignore_devices.add("es03rt");
-        ignore_devices.add("es05rt");
-        ignore_devices.add("es06rt");
-        ignore_devices.add("hirap");
-        ignore_devices.add("oss");
+            if (!es03rtCheckBox) { ignore_devs.add("es03rt"); }
+            if (!es05rtCheckBox) { ignore_devs.add("es05rt"); }
+            if (!es06rtCheckBox) { ignore_devs.add("es06rt"); }   */
+        ignore_devs.add("es03rt");
+        ignore_devs.add("es05rt");
+        ignore_devs.add("es06rt");
+        ignore_devs.add("hirap");
+        ignore_devs.add("oss");
+        return ignore_devs;
+    }
+
+    private void updateResults(String result) {
+
+        // result is big string: several DeviceDeltas lines with newline characters
+        TreeMap<String,DeviceDeltas> sorted_map = DeviceDeltas.getSortedMap(result);
+
+        // get list of devices to ignore with regards to deltas criteria for result state
+        List<String> ignore_devices = getDevicesToIgnore();
 
         // FIXME use different input profile in DigestDevices to get ranges from prefs...
         // ...AFTER adding XML for ranges FIRST.
 
-        // now we have sorted map, so iterate over devices to digest info
+        // use sorted map and iterate over devices to get and digest info for result
         DigestDevices digestDevices = new DigestDevices(sorted_map, ignore_devices);
         digestDevices.processMap();
 
-        // FIXME suppress this [ what about final build suppress all Log? ]
-        Log.i("DIGEST", "bad ho count = " + digestDevices.getCountBadDeltaHosts());
+/*        Log.i("DIGEST", "bad ho count = " + digestDevices.getCountBadDeltaHosts());
         Log.i("DIGEST", "bad ku count = " + digestDevices.getCountBadDeltaKus());
         Log.i("DIGEST", "ho range = " + digestDevices.getDeltaHostRange().toString());
-        Log.i("DIGEST", "ku range = " + digestDevices.getDeltaKuRange().toString());
+        Log.i("DIGEST", "ku range = " + digestDevices.getDeltaKuRange().toString());*/
 
-        // FIXME with both color result (for one-liner) and sound too
+        // FIXME with color result (for one-liner) AND proper sound to use too
         int mResultValue = digestDevices.getResultState();
         if (mResultValue < 0) {
             mSoundUri = this.mAlarmSoundUri;
@@ -247,6 +261,7 @@ public class MainActivity extends FragmentActivity {
             mSoundUri = this.mChimeSoundUri;
         }
         //getSupportActionBar().setTitle(GreenSpannableStringHere);  // spannable color change???
+        setTitle(digestDevices.getResultOneLiner());
 
         // make our ClickableSpans and URLSpans work
         mTextViewDevices.setMovementMethod(LinkMovementMethod.getInstance());

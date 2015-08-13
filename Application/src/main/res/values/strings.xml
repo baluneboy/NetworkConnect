@@ -23,7 +23,7 @@
     <string name="result_str">The result one-liner.</string>
 
     <!-- FIXME why does D or DDD not give DOY? -->
-    <string name="styled_12_hour_clock"><b>\'GMT\' </b><font face="sans-serif-bold"><font size="18">yyyy-MM-dd</font> / <b>HH:mm:ss</b></font></string>
-    <string name="styled_24_hour_clock"><b>\'GMT\' </b><font face="sans-serif-bold"><font size="18">yyyy-MM-dd</font> / <b>HH:mm:ss</b></font></string>
+    <string name="styled_12_hour_clock"><b>HH:mm:ss</b> / <font size="18">yyyy-MM-dd</font><b>\' = GMT\'</b></string>
+    <string name="styled_24_hour_clock"><b>HH:mm:ss</b> / <font size="18">yyyy-MM-dd</font><b>\' = GMT\'</b></string>
 
 </resources>
