@@ -17,7 +17,9 @@
 package com.example.android.networkconnect;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -25,6 +27,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.text.method.LinkMovementMethod;
@@ -69,6 +72,10 @@ public class MainActivity extends FragmentActivity {
     private Uri mAlarmSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.very_alarmed_mp3);
     private Uri mSoundUri = mChimeSoundUri;
 
+    static final int TIME_OUT = 15000;
+    static final int MSG_DISMISS_DIALOG = 0;
+    private AlertDialog mAlertDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -94,12 +101,83 @@ public class MainActivity extends FragmentActivity {
         // initialize TextView for result one-liner
         mTextViewResult.setText(R.string.welcome_message);
 
+        //createAndShowAlertDialog();
+        createDialog();
+
+    }
+
+    private Handler mHandler = new Handler() {
+        public void handleMessage(android.os.Message msg) {
+            switch (msg.what) {
+                case MSG_DISMISS_DIALOG:
+                    if (mAlertDialog != null && mAlertDialog.isShowing()) {
+                        mAlertDialog.dismiss();
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    };
+
+    private void createDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setPositiveButton("OK", null)
+                .setNegativeButton("cacel", null);
+        mAlertDialog = builder.create();
+        mAlertDialog.show();
+        // dismiss dialog in TIME_OUT ms
+        mHandler.sendEmptyMessageDelayed(MSG_DISMISS_DIALOG, TIME_OUT);
+    }
+
+    private void OLDcreateAndShowAlertDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("My Title");
+        builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                //TODO
+                dialog.dismiss();
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                //TODO
+                dialog.dismiss();
+            }
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        // FIXME major kludge here this would be made better
+        // with detecting wake condition USER_PRESENT state or
+        // something like that...
+
+        // TODO maybe instead of home screen jump, how about
+        // a dialog that times out to ask user if sound should play
+        // this gives user 33 seconds to by-pass sound on this refresh
+
+/*        AlertDialog.Builder builder = new AlertDialog.Builder(getApplicationContext());
+        builder.setMessage("Are you sure?").setPositiveButton("Yes", mDialogClickListener)
+                .setNegativeButton("No", mDialogClickListener).show();*/
+
+
         refresh();
+
+
+        // FIXME jump to home screen [ this is probably not desirable ]
+        // HOW TO DO THIS only do this when coming out of sleep?
+        // http://stackoverflow.com/questions/16244442/how-to-detect-when-app-wakes-up-from-a-display-timeout
+/*        Intent i = new Intent(Intent.ACTION_MAIN);
+        i.addCategory(Intent.CATEGORY_HOME);
+        startActivity(i);*/
+
+
     }
 
     @Override
