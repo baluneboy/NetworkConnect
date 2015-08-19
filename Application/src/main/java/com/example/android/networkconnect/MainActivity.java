@@ -27,6 +27,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
@@ -34,6 +35,7 @@ import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextClock;
 import android.widget.TextView;
 
@@ -47,6 +49,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -62,19 +65,18 @@ import java.util.TreeMap;
  */
 public class MainActivity extends FragmentActivity {
 
-    //public static final String TAG = "Network Connect";
-
     private TextClock mTextClock;
     private TextView mTextViewDevices;
     private TextView mTextViewResult;
 
-    private Uri mChimeSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.mild_europa_mp3);
-    private Uri mAlarmSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.very_alarmed_mp3);
-    private Uri mSoundUri = mChimeSoundUri;
+    private static Uri mChimeSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.mild_europa_mp3);
+    private static Uri mAlarmSoundUri = Uri.parse("android.resource://com.example.android.networkconnect/" + R.raw.very_alarmed_mp3);
+    private static Uri mSoundUri = mChimeSoundUri;
 
-    static final int TIME_OUT = 15000;
+    private int mLoopCountSound = 1;
+    static final int TIME_OUT = 10000;
     static final int MSG_DISMISS_DIALOG = 0;
-    private AlertDialog mAlertDialog;
+    private static AlertDialog mAlertDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,10 +87,12 @@ public class MainActivity extends FragmentActivity {
         mTextViewDevices = (TextView) findViewById(R.id.devicesRichTextView);
         mTextViewResult = (TextView) findViewById(R.id.resultRichTextView);
 
-        // FIXME cannot seem to get TextClock to honor day of year (D) code???
-/*        // set TextClock format
-        mTextClock.setFormat24Hour("HH:mm:ss DDD");
-        mTextClock.setFormat12Hour("HH:mm:ss DDD");*/
+        // FIXME get TextClock to honor day of year (D) code???
+/*        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy:DDD:HH:mm:ss");
+
+        // set TextClock format
+        mTextClock.setFormat24Hour(simpleDateFormat);
+        mTextClock.setFormat12Hour(simpleDateFormat);*/
 
         // make our ClickableSpans and URLSpans work
         mTextViewDevices.setMovementMethod(LinkMovementMethod.getInstance());
@@ -101,16 +105,16 @@ public class MainActivity extends FragmentActivity {
         // initialize TextView for result one-liner
         mTextViewResult.setText(R.string.welcome_message);
 
-        //createAndShowAlertDialog();
-        createDialog();
-
     }
 
+    // FIXME how do I get weak reference to clean this non-static handler (Lint message)
     private Handler mHandler = new Handler() {
         public void handleMessage(android.os.Message msg) {
             switch (msg.what) {
                 case MSG_DISMISS_DIALOG:
                     if (mAlertDialog != null && mAlertDialog.isShowing()) {
+                        Log.i("KenDEBUG", "The countdown timer pressed yes button on play sound dialog.");
+                        loopSound(1);
                         mAlertDialog.dismiss();
                     }
                     break;
@@ -121,33 +125,41 @@ public class MainActivity extends FragmentActivity {
         }
     };
 
-    private void createDialog() {
+    private void showSoundDialog() {
+        // build dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setPositiveButton("OK", null)
-                .setNegativeButton("cacel", null);
-        mAlertDialog = builder.create();
-        mAlertDialog.show();
-        // dismiss dialog in TIME_OUT ms
-        mHandler.sendEmptyMessageDelayed(MSG_DISMISS_DIALOG, TIME_OUT);
-    }
-
-    private void OLDcreateAndShowAlertDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setTitle("My Title");
         builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                //TODO
+                Log.i("KenDEBUG", "User pressed yes button on play sound dialog.");
+                loopSound(1);
                 dialog.dismiss();
             }
         });
         builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                //TODO
+                Log.i("KenDEBUG", "User pressed cancel button on play sound dialog.");
                 dialog.dismiss();
             }
         });
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        mAlertDialog = builder.create();
+        mAlertDialog.setTitle("Play sound?");
+        mAlertDialog.show();
+
+        // dismiss dialog in TIME_OUT ms
+        mHandler.sendEmptyMessageDelayed(MSG_DISMISS_DIALOG, TIME_OUT);
+
+        // start countdown timer
+        new CountDownTimer(TIME_OUT, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                mAlertDialog.setTitle("Play sound on OK or in " + (millisUntilFinished/1000) + " sec?");
+            }
+            @Override
+            public void onFinish() {
+                mAlertDialog.dismiss();
+            }
+        }.start();
+
     }
 
     @Override
@@ -166,17 +178,10 @@ public class MainActivity extends FragmentActivity {
         builder.setMessage("Are you sure?").setPositiveButton("Yes", mDialogClickListener)
                 .setNegativeButton("No", mDialogClickListener).show();*/
 
-
         refresh();
 
-
-        // FIXME jump to home screen [ this is probably not desirable ]
-        // HOW TO DO THIS only do this when coming out of sleep?
+        // HOWTO detect coming out of sleep?
         // http://stackoverflow.com/questions/16244442/how-to-detect-when-app-wakes-up-from-a-display-timeout
-/*        Intent i = new Intent(Intent.ACTION_MAIN);
-        i.addCategory(Intent.CATEGORY_HOME);
-        startActivity(i);*/
-
 
     }
 
@@ -200,7 +205,8 @@ public class MainActivity extends FragmentActivity {
                 mTextViewResult.setText("This result line changes with Refresh AsyncTask.");
                 mTextViewResult.setTextColor(Color.YELLOW);
                 mSoundUri = this.mAlarmSoundUri;
-                loopSound(1);
+
+                showSoundDialog();
 
         }
         return false;
@@ -208,7 +214,7 @@ public class MainActivity extends FragmentActivity {
 
     private void refresh(){
         // clear
-        mTextViewResult.setText("Started refresh via DownloadTask, please wait...");
+        mTextViewResult.setText("Async refresh via DownloadTask, please wait...");
 
         // fetch
         new DownloadTask().execute("http://pims.grc.nasa.gov/plots/user/sams/status/sensortimes.txt");
@@ -235,7 +241,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     public void loopSound(int repeat) {
-        loopSound(repeat, this.mSoundUri);
+        loopSound(repeat, mSoundUri);
     }
 
     /**
@@ -277,6 +283,7 @@ public class MainActivity extends FragmentActivity {
             if (result == null) {
                 mTextViewDevices.setText("Error in downloading. Please try again.");
             } else {
+                // get results, including result state (sound, loop count)
                 updateResults(result);
             }
 
@@ -286,8 +293,8 @@ public class MainActivity extends FragmentActivity {
             // close progress dialog
             dialog.dismiss();
 
-            // play notify sound [once?]
-            loopSound(1);
+            // play notify sound
+            loopSound(mLoopCountSound);
 
         }
     }
@@ -334,9 +341,11 @@ public class MainActivity extends FragmentActivity {
         int mResultValue = digestDevices.getResultState();
         if (mResultValue < 0) {
             mSoundUri = this.mAlarmSoundUri;
+            mLoopCountSound = 2;
         }
         else {
             mSoundUri = this.mChimeSoundUri;
+            mLoopCountSound = 1;
         }
         //getSupportActionBar().setTitle(GreenSpannableStringHere);  // spannable color change???
         setTitle(digestDevices.getResultOneLiner());
