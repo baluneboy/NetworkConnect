@@ -58,6 +58,12 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
+// TODO Remove DOY Horizontal Layout
+// TODO Introduce succinct headline for title text updates
+// TODO one-liner details go in just the subtitle text
+// TODO preferences VERY SIMPLE like Hourly interface
+// TODO figure out how to rename and make "Clear" button useful
+// TODO see readme.txt for note about units in dHost and dKu fields
 // FIXME for MainActivity can we go with extends Activity instead of FragmentActivity?
 /**
  * Sample application demonstrating how to connect to the network and fetch raw
@@ -220,12 +226,8 @@ public class MainActivity extends FragmentActivity {
             if (result == null) {
                 mTextViewDevices.setText("Error in downloading. Please try again.");
             } else {
-                // TODO prepend phone GMT
-                // e.g. 2015:239:21:30:52 phone CELL
-                // insert (after "begin" line) a device-type line for phone GMT here
+                // insert phone GMT
                 result = result.replaceAll("HOST", "HOST\n" + mPhoneGMT);
-
-                Log.i("KenDEBUG", result);
 
                 // get results, including result state (sound, loop count)
                 updateResults(result);

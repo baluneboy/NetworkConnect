@@ -332,7 +332,7 @@ public class DeviceDeltas {
                     deviceLines.append(HHMMSS.format(device_time));
                     deviceLines.append(String.format(" %6.1f", device_dh));
                     deviceLines.append(String.format(" %6.1f", device_dk));
-                    deviceLines.append("  " + device_name + "      ");
+                    deviceLines.append("  ").append(device_name).append("      ");
                     deviceLines.setSpan(new ForegroundColorSpan(Color.BLACK), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     deviceLines.setSpan(new BackgroundColorSpan(Color.WHITE), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
@@ -346,7 +346,7 @@ public class DeviceDeltas {
                     deviceLines.append(HHMMSS.format(device_time));
                     deviceLines.append("       ");
                     deviceLines.append("       ");
-                    deviceLines.append("  " + device_name + "      ");
+                    deviceLines.append("  ").append(device_name).append("      ");
                     deviceLines.setSpan(new ForegroundColorSpan(Color.DKGRAY), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                     //deviceLines.setSpan(new BackgroundColorSpan(Color.BLACK), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
@@ -362,9 +362,7 @@ public class DeviceDeltas {
                     deviceLines.append(HHMMSS.format(device_time));
                     deviceLines.setSpan(new ForegroundColorSpan(0xFFCC5500), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-                    // TODO for out of range dh (or dk), make red that value and device name too
                     // deltaHost span
-                    //start = deviceLines.length();
                     float dh = device_dh;
                     if (dh < -999.9) {
                         dh = -999.9f;
@@ -376,7 +374,6 @@ public class DeviceDeltas {
                     //deviceLines.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), start, deviceLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                     // deltaKu span
-                    //start = deviceLines.length();
                     float dk = device_dk;
                     boolean clipped = false;
                     if (dk < -999.9) {
@@ -416,7 +413,6 @@ public class DeviceDeltas {
                     resultLine.setSpan(new ForegroundColorSpan(0xFFCC5500), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
                 else {
-                    // TODO alarm somewhere in/after this else clause [keep track of 3 strikes before alarming?]
                     startResLine = resultLine.length();
                     if (countBadDeltaHosts > 0) {
                         resultLine.append(String.format("%d bad host deltas, ", countBadDeltaHosts));
