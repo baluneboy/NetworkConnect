@@ -26,6 +26,7 @@ public class DigestDevices {
     //private SpannableStringBuilder mDeviceLines = new SpannableStringBuilder();
     private int mCountBadDeltaHosts;
     private int mCountBadDeltaKus;
+    private Boolean mBadPhoneHostDelta = Boolean.TRUE;
     private int mResultState;
 
     private static final SimpleDateFormat DOY = new SimpleDateFormat("DDD:");
@@ -96,6 +97,9 @@ public class DigestDevices {
         return mCountBadDeltaKus;
     }
 
+    public Boolean isBadPhoneHostDelta() {
+        return mBadPhoneHostDelta;
+    }
     public int getResultState() {
         return mResultState;
     }
@@ -170,7 +174,7 @@ public class DigestDevices {
                 devLines.append(HHMMSS.format(device_time));
                 devLines.append(String.format(" %6.1f", device_dh));
                 devLines.append(String.format(" %6.1f", device_dk));
-                devLines.append("  " + device_name + "      ");
+                devLines.append("  ").append(device_name).append("      ");
                 devLines.setSpan(new ForegroundColorSpan(Color.BLACK), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 devLines.setSpan(new BackgroundColorSpan(Color.WHITE), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
@@ -184,10 +188,25 @@ public class DigestDevices {
                 devLines.append(HHMMSS.format(device_time));
                 devLines.append("       ");
                 devLines.append("       ");
-                devLines.append("  " + device_name + "      ");
+                devLines.append("  ").append(device_name).append("      ");
                 devLines.setSpan(new ForegroundColorSpan(Color.DKGRAY), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 //devLines.setSpan(new BackgroundColorSpan(Color.BLACK), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
+            }
+            // if this is phone device, then if dHost delta is too big, make it red
+            else if (device_name.equals("phone")) {
+                start = devLines.length();
+                devLines.append(DOY.format(device_time));
+                devLines.append(HHMMSS.format(device_time));
+                devLines.append(String.format(" %6.1f", device_dh));
+                devLines.append(String.format(" %6.1f", device_dk));
+                devLines.append("  ").append(device_name).append("----< ");
+                if (Math.abs(device_dh) < 121.0f) {
+                    mBadPhoneHostDelta = Boolean.FALSE;
+                } else if (Math.abs(device_dh) >= 121.0f) {
+                    mBadPhoneHostDelta = Boolean.TRUE;
+                    devLines.setSpan(new ForegroundColorSpan(Color.RED), start, devLines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
             }
             // otherwise, we have a device to consider for sound notify (check its dh and dk)
             else {
@@ -264,6 +283,11 @@ public class DigestDevices {
             resLine.append("All dHost okay, and all dKu okay.");
             resLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             setResultState(1);
+        }
+        else if (isBadPhoneHostDelta()) {
+            resLine.append("Bad phone host delta.");
+            resLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            setResultState(-1);
         }
         else {
             startResLine = resLine.length();

@@ -26,12 +26,13 @@
     <TextView
         android:id="@+id/resultRichTextView"
         android:text="@string/result_str"
-        android:layout_weight="6"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:textColor="#ffff34"
+        android:textColor="#0b0bde"
         android:textSize="16sp"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="6dp"
+        android:layout_weight="5"/>
 
     <!-- thin gray horizontal line -->
     <View
@@ -39,16 +40,33 @@
         android:layout_height="1dp"
         android:background="@android:color/darker_gray"/>
 
-    <!-- TextClock -->
-    <TextClock
-        android:id="@+id/textClock"
-        android:format12Hour="@string/styled_12_hour_clock"
-        android:format24Hour="@string/styled_24_hour_clock"
-        android:timeZone="GMT+0000"
-        android:textColor="#ffdc6e00"
-        android:textSize="28sp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="5">
+
+        <!-- TextClock -->
+        <TextClock
+            android:id="@+id/textClock"
+            android:format12Hour="@string/styled_12_hour_clock"
+            android:format24Hour="@string/styled_24_hour_clock"
+            android:timeZone="GMT+0000"
+            android:textColor="#ffdc6e00"
+            android:textSize="26sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+
+        <!-- Day Of Year -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="@string/doy_str"
+            android:id="@+id/doyTextView"/>
+
+    </LinearLayout>
 
     <!-- thin gray horizontal line -->
     <View
@@ -56,7 +74,7 @@
         android:layout_height="1dp"
         android:background="@android:color/darker_gray"/>
 
-    <!-- TextView for device lines -->
+    <!-- TextView for several device lines -->
     <TextView
         android:id="@+id/devicesRichTextView"
         android:layout_weight="1"
@@ -64,6 +82,6 @@
         android:layout_height="match_parent"
         android:text="devicesRichTextView"
         android:textSize="18sp"
-        android:layout_marginTop="24dp" />
+        android:layout_marginTop="12dp" />
 
 </LinearLayout>

@@ -35,7 +35,6 @@ import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.TextClock;
 import android.widget.TextView;
 
@@ -49,11 +48,14 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.TreeMap;
 
 // FIXME for MainActivity can we go with extends Activity instead of FragmentActivity?
@@ -74,9 +76,7 @@ public class MainActivity extends FragmentActivity {
     private static Uri mSoundUri = mChimeSoundUri;
 
     private int mLoopCountSound = 1;
-    static final int TIME_OUT = 10000;
-    static final int MSG_DISMISS_DIALOG = 0;
-    private static AlertDialog mAlertDialog;
+    private String mPhoneGMT = "012:33:44:55 phone CELL";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,82 +107,10 @@ public class MainActivity extends FragmentActivity {
 
     }
 
-    // FIXME how do I get weak reference to clean this non-static handler (Lint message)
-    private Handler mHandler = new Handler() {
-        public void handleMessage(android.os.Message msg) {
-            switch (msg.what) {
-                case MSG_DISMISS_DIALOG:
-                    if (mAlertDialog != null && mAlertDialog.isShowing()) {
-                        Log.i("KenDEBUG", "The countdown timer pressed yes button on play sound dialog.");
-                        loopSound(1);
-                        mAlertDialog.dismiss();
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    };
-
-    private void showSoundDialog() {
-        // build dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                Log.i("KenDEBUG", "User pressed yes button on play sound dialog.");
-                loopSound(1);
-                dialog.dismiss();
-            }
-        });
-        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                Log.i("KenDEBUG", "User pressed cancel button on play sound dialog.");
-                dialog.dismiss();
-            }
-        });
-        mAlertDialog = builder.create();
-        mAlertDialog.setTitle("Play sound?");
-        mAlertDialog.show();
-
-        // dismiss dialog in TIME_OUT ms
-        mHandler.sendEmptyMessageDelayed(MSG_DISMISS_DIALOG, TIME_OUT);
-
-        // start countdown timer
-        new CountDownTimer(TIME_OUT, 1000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-                mAlertDialog.setTitle("Play sound on OK or in " + (millisUntilFinished/1000) + " sec?");
-            }
-            @Override
-            public void onFinish() {
-                mAlertDialog.dismiss();
-            }
-        }.start();
-
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
-
-        // FIXME major kludge here this would be made better
-        // with detecting wake condition USER_PRESENT state or
-        // something like that...
-
-        // TODO maybe instead of home screen jump, how about
-        // a dialog that times out to ask user if sound should play
-        // this gives user 33 seconds to by-pass sound on this refresh
-
-/*        AlertDialog.Builder builder = new AlertDialog.Builder(getApplicationContext());
-        builder.setMessage("Are you sure?").setPositiveButton("Yes", mDialogClickListener)
-                .setNegativeButton("No", mDialogClickListener).show();*/
-
         refresh();
-
-        // HOWTO detect coming out of sleep?
-        // http://stackoverflow.com/questions/16244442/how-to-detect-when-app-wakes-up-from-a-display-timeout
-
     }
 
     @Override
@@ -205,8 +133,8 @@ public class MainActivity extends FragmentActivity {
                 mTextViewResult.setText("This result line changes with Refresh AsyncTask.");
                 mTextViewResult.setTextColor(Color.YELLOW);
                 mSoundUri = this.mAlarmSoundUri;
-
-                showSoundDialog();
+                loopSound(2);
+                return true;
 
         }
         return false;
@@ -216,8 +144,17 @@ public class MainActivity extends FragmentActivity {
         // clear
         mTextViewResult.setText("Async refresh via DownloadTask, please wait...");
 
+        // refresh phone's time as GMT now
+        refreshPhoneGMT();
+
         // fetch
         new DownloadTask().execute("http://pims.grc.nasa.gov/plots/user/sams/status/sensortimes.txt");
+    }
+
+    private void refreshPhoneGMT(){
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy:DDD:HH:mm:ss");
+        sdf.setTimeZone(TimeZone.getTimeZone("gmt"));
+        mPhoneGMT = sdf.format(new Date()) + " phone CELL";
     }
 
     public void loopSound(int repeat, Uri uri) {
@@ -283,6 +220,13 @@ public class MainActivity extends FragmentActivity {
             if (result == null) {
                 mTextViewDevices.setText("Error in downloading. Please try again.");
             } else {
+                // TODO prepend phone GMT
+                // e.g. 2015:239:21:30:52 phone CELL
+                // insert (after "begin" line) a device-type line for phone GMT here
+                result = result.replaceAll("HOST", "HOST\n" + mPhoneGMT);
+
+                Log.i("KenDEBUG", result);
+
                 // get results, including result state (sound, loop count)
                 updateResults(result);
             }
@@ -422,7 +366,12 @@ public class MainActivity extends FragmentActivity {
         return join(deviceLines, "\n");
     }
 
-    public static String join(List<?> list, String delim) {
+    /** Returns string that is built by joining list with delims
+     * @param list List containing elements to join
+     * @param delim String used to join list elements
+     * @return String concatenated from list using delim
+     */
+    private static String join(List<?> list, String delim) {
         int len = list.size();
         if (len == 0)
             return "";
