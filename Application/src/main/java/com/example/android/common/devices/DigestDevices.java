@@ -10,6 +10,7 @@ import android.text.style.StyleSpan;
 import android.util.Range;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.TreeMap;
@@ -20,14 +21,21 @@ import java.util.TreeMap;
 public class DigestDevices {
     private final TreeMap<String,DeviceDeltas> mSortedMap;
     private final List<String> mIgnoreDevices;
+    private List<SpannableString> mResults;
     private SpannableString mDeviceLines = new SpannableString("");
+    private SpannableString mResultSummary = new SpannableString("");
     private SpannableString mResultOneLiner = new SpannableString("");
     private Range<Integer> mDeltaHostRange, mDeltaKuRange;
     //private SpannableStringBuilder mDeviceLines = new SpannableStringBuilder();
     private int mCountBadDeltaHosts;
     private int mCountBadDeltaKus;
     private Boolean mBadPhoneHostDelta = Boolean.TRUE;
-    private int mResultState;
+
+    private int mResultStateInteger;
+    private ResultState mResultState;
+    private static State mGoodResultState = new ResultStateGood();
+    private static State mBadResultState = new ResultStateBad();
+    private static State mLimboResultState = new ResultStateLimbo();
 
     private static final SimpleDateFormat DOY = new SimpleDateFormat("DDD:");
     private static final SimpleDateFormat HHMMSS = new SimpleDateFormat("HH:mm:ss");
@@ -40,7 +48,9 @@ public class DigestDevices {
         mDeltaKuRange = delta_ku_range;
         mCountBadDeltaKus = 0;
         mCountBadDeltaHosts = 0;
-        mResultState = 0;
+        mResultStateInteger = 0;
+        mResultState = new ResultState(); // initial limbo state
+        mResults = null;
     }
 
     public DigestDevices(TreeMap<String, DeviceDeltas> sorted_map, List<String> ignore_devices) {
@@ -50,7 +60,9 @@ public class DigestDevices {
         mDeltaKuRange = Range.create(-3, 3);
         mCountBadDeltaKus = 0;
         mCountBadDeltaHosts = 0;
-        mResultState = 0;
+        mResultStateInteger = 0;
+        mResultState = new ResultState(); // initial limbo state
+        mResults = null;
     }
 
     // setters
@@ -62,7 +74,7 @@ public class DigestDevices {
 
     private void setCountBadDeltaHosts(int value) { mCountBadDeltaHosts = value; }
 
-    private void setResultState(int value) { mResultState = value; }
+    private void setResultStateInteger(int value) { mResultStateInteger = value; }
 
     // getters
     public TreeMap<String, DeviceDeltas> getSortedMap() {
@@ -85,8 +97,16 @@ public class DigestDevices {
         return mDeviceLines;
     }
 
+    public SpannableString getResultTitle() {
+        return mResultSummary;
+    }
+
     public SpannableString getResultOneLiner() {
         return mResultOneLiner;
+    }
+
+    public List<SpannableString> getResults() {
+        return mResults;
     }
 
     public int getCountBadDeltaHosts() {
@@ -100,8 +120,9 @@ public class DigestDevices {
     public Boolean isBadPhoneHostDelta() {
         return mBadPhoneHostDelta;
     }
-    public int getResultState() {
-        return mResultState;
+
+    public int getResultStateInteger() {
+        return mResultStateInteger;
     }
 
     private static String padRight(String s, int n) {
@@ -123,9 +144,11 @@ public class DigestDevices {
             mDeviceLines = getFormattedDeviceLines();
 
             // examine bad host/ku delta counts and such to determine result state & formatted one-liner
-            mResultOneLiner = getFormattedResultOneLiner();
+            mResults = getFormattedResults();
+            mResultOneLiner = mResults.get(0);
+            mResultSummary = mResults.get(1);
 
-            // TODO main activity change sound to chime/alarm based on mResultState
+            // TODO main activity change sound to chime/alarm based on mResultStateInteger
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -272,45 +295,116 @@ public class DigestDevices {
     private SpannableString getFormattedResultOneLiner() {
 
         // init state to zero (i.e. unknown state)
-        setResultState(0);
+        setResultStateInteger(0);
+
+        // note: we used limbo as initial state at this point
 
         // construct result one-liner spannable string
-        SpannableStringBuilder resLine = new SpannableStringBuilder();
-        int startResLine = resLine.length();
+        SpannableStringBuilder resultLine = new SpannableStringBuilder();
+        SpannableStringBuilder titleLine = new SpannableStringBuilder();
+        int startResLine = resultLine.length();
         int countBadDeltaHosts = getCountBadDeltaHosts();
         int countBadDeltaKus = getCountBadDeltaKus();
         if (countBadDeltaHosts + countBadDeltaKus == 0) {
-            resLine.append("All dHost okay, and all dKu okay.");
-            resLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            setResultState(1);
+            resultLine.append("All dHost okay, and all dKu okay.");
+            resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            setResultStateInteger(1);
+            mResultState.setState(mGoodResultState);
+            mResultState.setText("ALL DELTAS IN RANGE.");
         }
         else if (isBadPhoneHostDelta()) {
-            resLine.append("Bad phone host delta.");
-            resLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            setResultState(-1);
+            resultLine.append("Bad phone host delta.");
+            resultLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            setResultStateInteger(-1);
+            mResultState.setState(mBadResultState);
+            mResultState.setText("ABS(PHONE-HOST) DELTA TOO BIG.");
         }
         else {
-            startResLine = resLine.length();
+            startResLine = resultLine.length();
             if (countBadDeltaHosts > 0) {
-                resLine.append(String.format("%d bad dHost, ", countBadDeltaHosts));
-                resLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                resultLine.append(String.format("%d bad dHost, ", countBadDeltaHosts));
+                resultLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             else {
-                resLine.append("all dHost okay, ");
-                resLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                resultLine.append("all dHost okay, ");
+                resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            startResLine = resLine.length();
+            startResLine = resultLine.length();
             if (countBadDeltaKus > 0) {
-                resLine.append(String.format("%d bad dKu.", countBadDeltaKus));
-                resLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                setResultState(-1);
+                resultLine.append(String.format("%d bad dKu.", countBadDeltaKus));
+                resultLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                setResultStateInteger(-1);
+                mResultState.setState(mBadResultState);
+                mResultState.setText("KU DELTA(S) OUT OF RANGE.");
             }
             else {
-                resLine.append("all dKu okay.");
-                resLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                resultLine.append("all dKu okay.");
+                resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
-        return SpannableString.valueOf(resLine);
+        titleLine.append(mResultState.getText());
+        titleLine.setSpan(new ForegroundColorSpan(mResultState.getColor()), 0, titleLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return SpannableString.valueOf(resultLine);
+        //return SpannableString.valueOf(titleLine);
     }
+
+    private List<SpannableString> getFormattedResults() {
+
+        // init state to zero (i.e. unknown state)
+        setResultStateInteger(0);
+
+        // note: we used limbo as initial state at this point
+
+        // construct result one-liner spannable string
+        List<SpannableString> results = new ArrayList<SpannableString>();
+        SpannableStringBuilder resultLine = new SpannableStringBuilder();
+        SpannableStringBuilder titleLine = new SpannableStringBuilder();
+        int startResLine = resultLine.length();
+        int countBadDeltaHosts = getCountBadDeltaHosts();
+        int countBadDeltaKus = getCountBadDeltaKus();
+        if (countBadDeltaHosts + countBadDeltaKus == 0) {
+            resultLine.append("All dHost okay, and all dKu okay.");
+            resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            setResultStateInteger(1);
+            mResultState.setState(mGoodResultState);
+            mResultState.setText("ALL DELTAS IN RANGE.");
+        }
+        else if (isBadPhoneHostDelta()) {
+            resultLine.append("Bad phone host delta.");
+            resultLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            setResultStateInteger(-1);
+            mResultState.setState(mBadResultState);
+            mResultState.setText("ABS(PHONE-HOST) DELTA TOO BIG.");
+        }
+        else {
+            startResLine = resultLine.length();
+            if (countBadDeltaHosts > 0) {
+                resultLine.append(String.format("%d bad dHost, ", countBadDeltaHosts));
+                resultLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            else {
+                resultLine.append("all dHost okay, ");
+                resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            startResLine = resultLine.length();
+            if (countBadDeltaKus > 0) {
+                resultLine.append(String.format("%d bad dKu.", countBadDeltaKus));
+                resultLine.setSpan(new ForegroundColorSpan(Color.RED), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                setResultStateInteger(-1);
+                mResultState.setState(mBadResultState);
+                mResultState.setText("KU DELTA(S) OUT OF RANGE.");
+            }
+            else {
+                resultLine.append("all dKu okay.");
+                resultLine.setSpan(new ForegroundColorSpan(Color.GREEN), startResLine, resultLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+        titleLine.append(mResultState.getText());
+        titleLine.setSpan(new ForegroundColorSpan(mResultState.getColor()), 0, titleLine.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        results.add(SpannableString.valueOf(resultLine));
+        results.add(SpannableString.valueOf(titleLine));
+        return results;
+    }
+
 
 }

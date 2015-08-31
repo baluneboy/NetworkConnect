@@ -32,7 +32,7 @@
         android:textSize="16sp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="6dp"
-        android:layout_weight="5"/>
+        android:layout_weight="6"/>
 
     <!-- thin gray horizontal line -->
     <View
@@ -40,33 +40,17 @@
         android:layout_height="1dp"
         android:background="@android:color/darker_gray"/>
 
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_weight="5">
-
-        <!-- TextClock -->
-        <TextClock
-            android:id="@+id/textClock"
-            android:format12Hour="@string/styled_12_hour_clock"
-            android:format24Hour="@string/styled_24_hour_clock"
-            android:timeZone="GMT+0000"
-            android:textColor="#ffdc6e00"
-            android:textSize="26sp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            />
-
-        <!-- Day Of Year -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="@string/doy_str"
-            android:id="@+id/doyTextView"/>
-
-    </LinearLayout>
+    <!-- Large Orange TextClock -->
+    <TextClock
+        android:id="@+id/textClock"
+        android:format12Hour="@string/styled_12_hour_clock"
+        android:format24Hour="@string/styled_24_hour_clock"
+        android:timeZone="GMT+0000"
+        android:textColor="#ffdc6e00"
+        android:textSize="28sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
 
     <!-- thin gray horizontal line -->
     <View

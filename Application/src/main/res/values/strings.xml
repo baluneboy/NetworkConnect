@@ -21,10 +21,9 @@
     <string name="clear_text">Clear</string>
     <string name="connection_error">Connection error.</string>
     <string name="result_str">The result one-liner.</string>
-    <string name="doy_str">999</string>
 
     <!-- FIXME why does D or DDD not give DOY? -->
-    <string name="styled_12_hour_clock"><b>HH:mm:ss</b><font size="18"><b>\' GMT \'</b>yyyy-MM-dd<b>\' / \'</b></font></string>
-    <string name="styled_24_hour_clock"><b>HH:mm:ss</b><font size="18"><b>\' GMT \'</b>yyyy-MM-dd<b>\' / \'</b></font></string>
+    <string name="styled_12_hour_clock"><b>HH:mm:ss</b><font size="18"><b>\' GMT \'</b>yyyy-MM-dd</font></string>
+    <string name="styled_24_hour_clock"><b>HH:mm:ss</b><font size="18"><b>\' GMT \'</b>yyyy-MM-dd</font></string>
 
 </resources>

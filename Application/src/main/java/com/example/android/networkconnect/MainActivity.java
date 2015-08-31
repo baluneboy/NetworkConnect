@@ -58,13 +58,13 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
-// TODO Remove DOY Horizontal Layout
-// TODO Introduce succinct headline for title text updates
-// TODO one-liner details go in just the subtitle text
-// TODO preferences VERY SIMPLE like Hourly interface
-// TODO figure out how to rename and make "Clear" button useful
+// TODO Introduce succinct headline for title text updates (one-liner just in subtitle)
+// TODO preferences VERY SIMPLE like Hourly interface (ignoreDevs, silent chime [NEVER SILENT ALARM])
 // TODO see readme.txt for note about units in dHost and dKu fields
+// TODO figure out how to rename and make "Clear" button useful
+
 // FIXME for MainActivity can we go with extends Activity instead of FragmentActivity?
+
 /**
  * Sample application demonstrating how to connect to the network and fetch raw
  * text from URL using AsyncTask to do the fetch on a background thread.
@@ -82,7 +82,7 @@ public class MainActivity extends FragmentActivity {
     private static Uri mSoundUri = mChimeSoundUri;
 
     private int mLoopCountSound = 1;
-    private String mPhoneGMT = "012:33:44:55 phone CELL";
+    private String mPhoneGMT = "111:22:33:44 phone CELL";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -226,7 +226,7 @@ public class MainActivity extends FragmentActivity {
             if (result == null) {
                 mTextViewDevices.setText("Error in downloading. Please try again.");
             } else {
-                // insert phone GMT
+                // insert phone GMT after the HOST line, which should always be there
                 result = result.replaceAll("HOST", "HOST\n" + mPhoneGMT);
 
                 // get results, including result state (sound, loop count)
@@ -284,7 +284,7 @@ public class MainActivity extends FragmentActivity {
         Log.i("DIGEST", "ku range = " + digestDevices.getDeltaKuRange().toString());*/
 
         // FIXME with color result (for one-liner) AND proper sound to use too
-        int mResultValue = digestDevices.getResultState();
+        int mResultValue = digestDevices.getResultStateInteger();
         if (mResultValue < 0) {
             mSoundUri = this.mAlarmSoundUri;
             mLoopCountSound = 2;
@@ -293,8 +293,7 @@ public class MainActivity extends FragmentActivity {
             mSoundUri = this.mChimeSoundUri;
             mLoopCountSound = 1;
         }
-        //getSupportActionBar().setTitle(GreenSpannableStringHere);  // spannable color change???
-        setTitle(digestDevices.getResultOneLiner());
+        setTitle(digestDevices.getResultTitle());
 
         // make our ClickableSpans and URLSpans work
         mTextViewDevices.setMovementMethod(LinkMovementMethod.getInstance());
