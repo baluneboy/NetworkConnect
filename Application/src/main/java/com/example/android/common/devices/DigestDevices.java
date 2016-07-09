@@ -23,8 +23,8 @@ public class DigestDevices {
     private final List<String> mIgnoreDevices;
     private List<SpannableString> mResults;
     private SpannableString mDeviceLines = new SpannableString("");
-    private SpannableString mResultSummary = new SpannableString("");
-    private SpannableString mResultOneLiner = new SpannableString("");
+    private SpannableString mResultTitle = new SpannableString("");
+    private SpannableString mResultDetails = new SpannableString("");
     private Range<Integer> mDeltaHostRange, mDeltaKuRange;
     //private SpannableStringBuilder mDeviceLines = new SpannableStringBuilder();
     private int mCountBadDeltaHosts;
@@ -35,7 +35,7 @@ public class DigestDevices {
     private ResultState mResultState;
     private static State mGoodResultState = new ResultStateGood();
     private static State mBadResultState = new ResultStateBad();
-    private static State mLimboResultState = new ResultStateLimbo();
+    //private static State mLimboResultState = new ResultStateLimbo();
 
     private static final SimpleDateFormat DOY = new SimpleDateFormat("DDD:");
     private static final SimpleDateFormat HHMMSS = new SimpleDateFormat("HH:mm:ss");
@@ -98,11 +98,11 @@ public class DigestDevices {
     }
 
     public SpannableString getResultTitle() {
-        return mResultSummary;
+        return mResultTitle;
     }
 
-    public SpannableString getResultOneLiner() {
-        return mResultOneLiner;
+    public SpannableString getResultDetails() {
+        return mResultDetails;
     }
 
     public List<SpannableString> getResults() {
@@ -145,8 +145,8 @@ public class DigestDevices {
 
             // examine bad host/ku delta counts and such to determine result state & formatted one-liner
             mResults = getFormattedResults();
-            mResultOneLiner = mResults.get(0);
-            mResultSummary = mResults.get(1);
+            mResultDetails = mResults.get(0);
+            mResultTitle = mResults.get(1);
 
             // TODO main activity change sound to chime/alarm based on mResultStateInteger
 

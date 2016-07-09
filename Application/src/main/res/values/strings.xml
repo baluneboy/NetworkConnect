@@ -18,12 +18,24 @@
 
     <string name="welcome_message">Welcome to NetworkConnect</string>
     <string name="fetch_text">Refresh</string>
-    <string name="clear_text">Clear</string>
+    <string name="prefs_text">Clear</string>
     <string name="connection_error">Connection error.</string>
     <string name="result_str">The result one-liner.</string>
 
     <!-- FIXME why does D or DDD not give DOY? -->
     <string name="styled_12_hour_clock"><b>HH:mm:ss</b><font size="18"><b>\' GMT \'</b>yyyy-MM-dd</font></string>
     <string name="styled_24_hour_clock"><b>HH:mm:ss</b><font size="18"><b>\' GMT \'</b>yyyy-MM-dd</font></string>
+
+    <!-- Edit Prefs -->
+    <string name="ep_desc_set_media_volume">Change the media volume before launching the app.</string>
+    <string name="ep_hd_mainopt">The Options</string>
+    <string name="ep_hd_backopt">Backup Options</string>
+    <string name="ep_ti_enabled">Enable Alarm</string>
+    <string name="ep_ti_app">App To Launch</string>
+    <string name="ep_ti_time">Alarm Time</string>
+    <string name="ep_ti_repeat">Alarm Repeat</string>
+    <string name="ep_ti_backup_option">Backup Alarm</string>
+    <string name="ep_ti_set_media_vol">Set Media Volume</string>
+    <string name="ep_ti_media_vol">Media Volume</string>
 
 </resources>

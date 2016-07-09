@@ -17,9 +17,7 @@
 package com.example.android.networkconnect;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -27,8 +25,6 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.CountDownTimer;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.text.method.LinkMovementMethod;
@@ -58,12 +54,11 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
-// TODO Introduce succinct headline for title text updates (one-liner just in subtitle)
 // TODO preferences VERY SIMPLE like Hourly interface (ignoreDevs, silent chime [NEVER SILENT ALARM])
 // TODO see readme.txt for note about units in dHost and dKu fields
 // TODO figure out how to rename and make "Clear" button useful
 
-// FIXME for MainActivity can we go with extends Activity instead of FragmentActivity?
+// FIXME MainActivity originally extended FragmentActivity instead of Activity, but why?
 
 /**
  * Sample application demonstrating how to connect to the network and fetch raw
@@ -71,7 +66,8 @@ import java.util.TreeMap;
  *
  * To establish the network connection, it uses HttpURLConnection.
  */
-public class MainActivity extends FragmentActivity {
+//public class MainActivity extends FragmentActivity {
+public class MainActivity extends Activity {
 
     private TextClock mTextClock;
     private TextView mTextViewDevices;
@@ -135,7 +131,7 @@ public class MainActivity extends FragmentActivity {
                 return true;
 
             // Clear is JUST A PLACEHOLDER action for now
-            case R.id.clear_action:
+            case R.id.prefs_action:
                 mTextViewResult.setText("This result line changes with Refresh AsyncTask.");
                 mTextViewResult.setTextColor(Color.YELLOW);
                 mSoundUri = this.mAlarmSoundUri;
@@ -295,11 +291,11 @@ public class MainActivity extends FragmentActivity {
         }
         setTitle(digestDevices.getResultTitle());
 
+        // populate top result (one-liner) text view with alarm results in spannable text form
+        mTextViewResult.setText(digestDevices.getResultDetails(), TextView.BufferType.SPANNABLE);
+
         // make our ClickableSpans and URLSpans work
         mTextViewDevices.setMovementMethod(LinkMovementMethod.getInstance());
-
-        // populate top result (one-liner) text view with alarm results in spannable text form
-        mTextViewResult.setText(digestDevices.getResultOneLiner(), TextView.BufferType.SPANNABLE);
 
         // populate devices text view with device times info in spannable form
         mTextViewDevices.setText(digestDevices.getDeviceLines(), TextView.BufferType.SPANNABLE);
